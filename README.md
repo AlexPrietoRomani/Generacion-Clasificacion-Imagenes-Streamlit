@@ -42,14 +42,15 @@ env\Scripts\activate     # En Windows
 ````
 pip install -r requirements.txt
 ````
+
 4. Descargar el Modelo
 Ejecuta el script para descargar el modelo Stable Diffusion:
 
 ````
 python descarga_modelo.py
 ````
-    
-    - Uso Local (Sin Docker)
+
+- Uso Local (Sin Docker)
     1. Ejecuta la aplicación:
     ````
     streamlit run app.py
@@ -57,7 +58,7 @@ python descarga_modelo.py
 
     2. Abre el navegador y accede a: http://localhost:8501.
     
-    - Uso con Docker
+- Uso con Docker
     1. Construir la imagen Docker:
 
     ````
