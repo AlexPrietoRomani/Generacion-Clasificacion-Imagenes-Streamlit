@@ -1,0 +1,14 @@
+# Entorno virtual
+env/
+
+# Cache de Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Archivos temporales
+temp/
+*.log
+
+# Modelos descargados
+models/
