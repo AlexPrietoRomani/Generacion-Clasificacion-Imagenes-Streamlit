@@ -16,7 +16,49 @@ ensure_model_downloaded(model_id, local_model_dir)
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
 
 # Configuración inicial de Streamlit
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_title="Generador y Clasificador de Imágenes", page_icon="🎨")
+
+# Estilos CSS personalizados para una apariencia más agradable
+st.markdown("""
+    <style>
+    /* Contenedor Principal */
+    .main {
+        background-color: #f9f9f9;
+        padding: 20px;
+    }
+
+    /* Títulos y textos */
+    h1, h2, h3 {
+        color: #333333;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .stTextInput label, .stFileUploader label {
+        font-weight: bold;
+        color: #4a4a4a;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .stButton button {
+        background-color: #6C63FF;
+        color: white;
+        font-weight: bold;
+        border: none;
+        border-radius: 5px;
+        padding: 0.6em 1em;
+        cursor: pointer;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .stButton button:hover {
+        background-color: #5a55d8;
+    }
+
+    .st-alert {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # Cargar el modelo desde la ubicación local
 def load_generation_model():
@@ -30,14 +72,23 @@ def load_generation_model():
 def load_classification_model():
     return pipeline("image-classification", model="google/vit-base-patch16-224")
 
-# Modelos
 st.sidebar.title("Opciones de Modelos")
-generation_model = load_generation_model()
-classification_model = load_classification_model()
+st.sidebar.markdown("Selecciona las acciones que desees realizar en la aplicación.")
 
-# app.py
+# Modelos
 with st.spinner("Cargando modelo de generación..."):
     generation_model = load_generation_model()
+classification_model = load_classification_model()
+
+# Descripción general
+st.markdown("""
+Bienvenido a la aplicación de generación y clasificación de imágenes.
+- En la **sección izquierda** tienes las opciones de modelos.
+- En la **sección derecha** podrás subir una imagen para clasificar.
+- En la **sección de la izquierda** también puedes generar una imagen a partir de un texto (prompt).
+
+¡Disfruta la experiencia!
+""")
 
 # Layout de la aplicación
 col1, col2 = st.columns(2)
@@ -45,7 +96,8 @@ col1, col2 = st.columns(2)
 # Sección de Generación de Imágenes (col1)
 with col1:
     st.header("Generación de Imágenes")
-    prompt = st.text_input("Escribe tu solicitud para generar una imagen:")
+    st.markdown("Introduce un texto descriptivo (prompt) y haz clic en **Generar Imagen** para crear una nueva imagen.")
+    prompt = st.text_input("Prompt para la imagen:")
     
     if st.button("Generar Imagen"):
         if prompt:
@@ -53,14 +105,17 @@ with col1:
                 image = generation_model(prompt).images[0]
                 st.image(image, caption="Imagen Generada", use_column_width=True)
                 image.save("generated_image.png")
-                st.success("¡Imagen generada con éxito!")
+                st.success("¡Imagen generada con éxito! Encuéntrala debajo o en la carpeta local.")
         else:
             st.warning("Por favor, ingresa un prompt válido.")
+
+    st.markdown("---")
 
 # Sección de Clasificación de Imágenes (col2)
 with col2:
     st.header("Clasificación de Imágenes")
-    uploaded_file = st.file_uploader("Sube una imagen para clasificar:")
+    st.markdown("Sube una imagen desde tu computadora y haz clic en **Clasificar Imagen** para conocer las etiquetas más probables.")
+    uploaded_file = st.file_uploader("Subir imagen:", type=["png", "jpg", "jpeg"])
     
     if uploaded_file:
         image_path = save_uploaded_file(uploaded_file)
@@ -70,18 +125,19 @@ with col2:
         if st.button("Clasificar Imagen"):
             with st.spinner("Clasificando imagen..."):
                 results = classify_image(image_path, classification_model)
-                st.write("Resultados de Clasificación:")
+                st.write("### Resultados de Clasificación:")
                 for result in results:
                     st.write(f"- **{result['label']}**: {result['score']:.2f}")
     
-    # Clasificar imagen generada
+    st.markdown("---")
+    st.markdown("Si ya has generado una imagen, también puedes clasificarla a continuación.")
     if st.button("Clasificar Imagen Generada"):
         if os.path.exists("generated_image.png"):
             with st.spinner("Clasificando imagen generada..."):
                 results = classify_image("generated_image.png", classification_model)
-                st.write("Resultados de Clasificación de la Imagen Generada:")
+                st.write("### Resultados de Clasificación de la Imagen Generada:")
                 for result in results:
                     st.write(f"- **{result['label']}**: {result['score']:.2f}")
         else:
-            st.warning("No se ha generado ninguna imagen aún.")
+            st.warning("No se ha generado ninguna imagen aún. Por favor, genera una antes de clasificarla.")
 
