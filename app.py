@@ -1,17 +1,19 @@
 import streamlit as st
-from utils import ensure_model_downloaded
 from diffusers import StableDiffusionPipeline
 from transformers import pipeline
 from PIL import Image
 import torch
 import os
-from utils import classify_image, save_uploaded_file
-import os
+from utils import classify_image, save_uploaded_file,ensure_model_downloaded
+from huggingface_hub import snapshot_download
 
 # Verificar o descargar el modelo antes de usarlo
 model_id = "CompVis/stable-diffusion-v1-4"
 local_model_dir = "./models/stable-diffusion-v1-4"
 ensure_model_downloaded(model_id, local_model_dir)
+
+if not os.path.exists(local_model_dir) or len(os.listdir(local_model_dir)) == 0:
+    snapshot_download(repo_id=model_id, local_dir=local_model_dir)
 
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
 
@@ -62,10 +64,42 @@ st.markdown("""
 
 # Cargar el modelo desde la ubicación local
 def load_generation_model():
-    pipe = StableDiffusionPipeline.from_pretrained(local_model_dir)
+    model_index_path = os.path.join(local_model_dir, "model_index.json")
+    
+    # Si el directorio no existe o está vacío, o no existe el model_index.json, descargamos de nuevo
+    if (not os.path.exists(local_model_dir) 
+        or len(os.listdir(local_model_dir)) == 0 
+        or not os.path.exists(model_index_path)):
+
+        st.write(f"El modelo {model_id} no está completamente descargado o falta 'model_index.json'. Descargando nuevamente...")
+
+        # Si el directorio existe pero no tiene el archivo necesario, lo borramos para evitar conflictos
+        if os.path.exists(local_model_dir):
+            # Eliminar todo el directorio del modelo incompleto
+            import shutil
+            shutil.rmtree(local_model_dir)
+
+        # Volver a descargar el modelo con snapshot_download o directamente con from_pretrained
+        snapshot_download(repo_id=model_id, local_dir=local_model_dir)
+        
+        # Ahora cargamos desde el directorio ya descargado
+        pipe = StableDiffusionPipeline.from_pretrained(
+            local_model_dir, 
+            torch_dtype=torch.float16
+        )
+        
+    else:
+        st.write(f"Modelo ya disponible en {local_model_dir}")
+        pipe = StableDiffusionPipeline.from_pretrained(
+            local_model_dir, 
+            torch_dtype=torch.float16
+        )
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
     pipe = pipe.to(device)
     return pipe
+
+
 
 # Cargar el modelo de clasificación
 @st.cache_resource
