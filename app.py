@@ -5,7 +5,7 @@ from PIL import Image
 import torch
 import os
 import time
-from utils import classify_image, save_uploaded_file, ensure_model_downloaded,detectar_rostro, aplicar_estilo
+from utils import classify_image, save_uploaded_file, ensure_model_downloaded,detectar_rostro, aplicar_estilo, aplicar_estilo_y_fondo
 from huggingface_hub import snapshot_download
 import shutil
 import io
@@ -228,22 +228,21 @@ elif opcion == "Clasificación de Imágenes":
             st.warning("No se ha generado ninguna imagen aún. Por favor, genera una antes de clasificarla.")
 
 elif opcion == "Estilización de Rostro para CV":
-    # === NUEVO BLOQUE: Estilización de Rostro para CV ===
-    st.header("Generador de Estilo de Rostro para CV")
+    st.header("Generador de Estilo y Fondo para CV")
 
     # Subida de imagen de rostro
     uploaded_face = st.file_uploader("Sube una imagen de tu rostro", type=["jpg", "png", "jpeg"])
     if uploaded_face is not None:
-        st.image(uploaded_face, caption="Imagen original", use_column_width=True)
+        st.image(uploaded_face, caption="Imagen original", use_container_width=True)
 
         # Detección de rostro
         rostro, error = detectar_rostro(uploaded_face)
         if error:
             st.error(error)
         else:
-            st.image(rostro, caption="Rostro detectado", use_column_width=True)
+            st.image(rostro, caption="Rostro detectado", use_container_width=True)
 
-            # Opciones de estilos disponibles
+            # Selección del estilo a aplicar
             estilos_disponibles = {
                 "Van Gogh": "van_gogh.pth",
                 "Picasso": "picasso.pth",
@@ -252,19 +251,22 @@ elif opcion == "Estilización de Rostro para CV":
             opcion_estilo = st.selectbox("Selecciona un estilo", list(estilos_disponibles.keys()))
             modelo_estilo_path = estilos_disponibles[opcion_estilo]
 
-            # Aplicar transferencia de estilo
-            with st.spinner("Aplicando estilo..."):
-                estilo_image = aplicar_estilo(rostro, estilo_model_path=modelo_estilo_path)
-            st.image(estilo_image, caption="Rostro estilizado", use_column_width=True)
+            # Ingresar el prompt para el fondo
+            fondo_prompt = st.text_input("Ingresa el prompt para el nuevo fondo", "Fondo abstracto con colores vivos")
 
-            # Botón para descargar la imagen estilizada (usando BytesIO)
-            buf = io.BytesIO()
-            estilo_image.save(buf, format="PNG")
-            byte_im = buf.getvalue()
+            if st.button("Generar imagen final"):
+                with st.spinner("Generando imagen final..."):
+                    imagen_final = aplicar_estilo_y_fondo(rostro, fondo_prompt, estilo_model_path=modelo_estilo_path)
+                st.image(imagen_final, caption="Imagen final", use_container_width=True)
 
-            st.download_button(
-                label="Descargar imagen estilizada",
-                data=byte_im,
-                file_name="rostro_estilizado.png",
-                mime="image/png"
-            )
+                # Botón para descargar la imagen final
+                import io
+                buf = io.BytesIO()
+                imagen_final.save(buf, format="PNG")
+                byte_im = buf.getvalue()
+                st.download_button(
+                    label="Descargar imagen final",
+                    data=byte_im,
+                    file_name="imagen_final.png",
+                    mime="image/png"
+                )
