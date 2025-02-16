@@ -5,10 +5,10 @@ from PIL import Image
 import torch
 import os
 import time
-from utils import classify_image, save_uploaded_file, ensure_model_downloaded
+from utils import classify_image, save_uploaded_file, ensure_model_downloaded,detectar_rostro, aplicar_estilo
 from huggingface_hub import snapshot_download
 import shutil
-
+import io
 # --------------------------------------------------------------------------------------------
 # Configuración de la aplicación y manejo de modelos
 # --------------------------------------------------------------------------------------------
@@ -169,13 +169,16 @@ Bienvenido a la aplicación de generación y clasificación de imágenes.
 - Clasifica imágenes subidas o la última imagen generada (columna derecha).
 """)
 
-col1, col2 = st.columns(2)
+# Menú lateral para seleccionar la funcionalidad
+opcion = st.sidebar.radio("Selecciona una funcionalidad:", 
+                           ["Generación de Imágenes", "Clasificación de Imágenes", "Estilización de Rostro para CV"])
 
-with col1:
+if opcion == "Generación de Imágenes":
+    # === BLOQUE EXISTENTE: Generación de Imágenes ===
     st.header("Generación de Imágenes")
     st.markdown("Escribe un prompt y haz clic en **Generar Imagen** para crear una nueva imagen.")
     prompt = st.text_input("Prompt para la imagen:")
-
+    
     if st.button("Generar Imagen"):
         if prompt:
             start_time = time.time()
@@ -188,9 +191,8 @@ with col1:
         else:
             st.warning("Por favor, ingresa un prompt válido.")
 
-    st.markdown("---")
-
-with col2:
+elif opcion == "Clasificación de Imágenes":
+    # === BLOQUE EXISTENTE: Clasificación de Imágenes ===
     st.header("Clasificación de Imágenes")
     st.markdown("Sube una imagen y haz clic en **Clasificar Imagen**.")
     uploaded_file = st.file_uploader("Subir imagen:", type=["png", "jpg", "jpeg"])
@@ -224,3 +226,45 @@ with col2:
             st.success(f"Clasificación completada en {elapsed:.2f} segundos.")
         else:
             st.warning("No se ha generado ninguna imagen aún. Por favor, genera una antes de clasificarla.")
+
+elif opcion == "Estilización de Rostro para CV":
+    # === NUEVO BLOQUE: Estilización de Rostro para CV ===
+    st.header("Generador de Estilo de Rostro para CV")
+
+    # Subida de imagen de rostro
+    uploaded_face = st.file_uploader("Sube una imagen de tu rostro", type=["jpg", "png", "jpeg"])
+    if uploaded_face is not None:
+        st.image(uploaded_face, caption="Imagen original", use_column_width=True)
+
+        # Detección de rostro
+        rostro, error = detectar_rostro(uploaded_face)
+        if error:
+            st.error(error)
+        else:
+            st.image(rostro, caption="Rostro detectado", use_column_width=True)
+
+            # Opciones de estilos disponibles
+            estilos_disponibles = {
+                "Van Gogh": "van_gogh.pth",
+                "Picasso": "picasso.pth",
+                "Sketch": "sketch.pth"
+            }
+            opcion_estilo = st.selectbox("Selecciona un estilo", list(estilos_disponibles.keys()))
+            modelo_estilo_path = estilos_disponibles[opcion_estilo]
+
+            # Aplicar transferencia de estilo
+            with st.spinner("Aplicando estilo..."):
+                estilo_image = aplicar_estilo(rostro, estilo_model_path=modelo_estilo_path)
+            st.image(estilo_image, caption="Rostro estilizado", use_column_width=True)
+
+            # Botón para descargar la imagen estilizada (usando BytesIO)
+            buf = io.BytesIO()
+            estilo_image.save(buf, format="PNG")
+            byte_im = buf.getvalue()
+
+            st.download_button(
+                label="Descargar imagen estilizada",
+                data=byte_im,
+                file_name="rostro_estilizado.png",
+                mime="image/png"
+            )
