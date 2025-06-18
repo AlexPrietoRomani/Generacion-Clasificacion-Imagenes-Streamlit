@@ -18,6 +18,12 @@ Este proyecto es una aplicación web interactiva creada con Streamlit que permit
     - Permite clasificar la imagen generada en la columna 1.
     - Devuelve etiquetas con puntajes de confianza.
 
+- Estilización de Rostro (Columna 3):
+
+    - Aplica un modelo de estilo artístico a un rostro detectado.
+    - Genera un fondo con Stable Diffusion usando un prompt.
+    - Combina el rostro estilizado con el fondo resultante.
+
 Requisitos Previos
 - Python 3.9 o superior instalado.
 - Docker (opcional, si deseas ejecutar la aplicación dentro de un contenedor).

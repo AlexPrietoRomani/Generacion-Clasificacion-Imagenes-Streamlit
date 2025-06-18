@@ -255,7 +255,12 @@ elif opcion == "Estilización de Rostro para CV":
 
             if st.button("Generar imagen final"):
                 with st.spinner("Generando imagen final..."):
-                    imagen_final = aplicar_estilo_y_fondo(rostro, fondo_prompt, estilo_model_path=modelo_estilo_path)
+                    imagen_final = aplicar_estilo_y_fondo(
+                        rostro,
+                        fondo_prompt,
+                        estilo_model_path=modelo_estilo_path,
+                        pipe=generation_model,
+                    )
                 st.image(imagen_final, caption="Imagen final", use_container_width=True)
 
                 # Botón para descargar la imagen final
