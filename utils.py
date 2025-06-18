@@ -77,7 +77,13 @@ def aplicar_estilo(image, estilo_model_path="modelo_estilo.pth"):
     output_image = transforms.ToPILImage()(output_tensor.squeeze(0))
     return output_image
 
-def aplicar_estilo_y_fondo(rostro, fondo_prompt, estilo_model_path="modelo_estilo.pth", background_size=(512, 512)):
+def aplicar_estilo_y_fondo(
+    rostro,
+    fondo_prompt,
+    estilo_model_path="modelo_estilo.pth",
+    background_size=(512, 512),
+    pipe=None,
+):
     """
     Aplica transferencia de estilo al rostro y genera un fondo a partir del prompt dado.
     Combina ambos para obtener la imagen final.
@@ -87,6 +93,7 @@ def aplicar_estilo_y_fondo(rostro, fondo_prompt, estilo_model_path="modelo_estil
       - fondo_prompt: Texto con el prompt para generar el fondo.
       - estilo_model_path: Ruta al modelo de transferencia de estilo.
       - background_size: Tupla (ancho, alto) para la imagen de fondo.
+      - pipe: instancia de `StableDiffusionPipeline` ya cargada (opcional).
     
     Retorna:
       - Imagen PIL (en modo RGBA) resultante.
@@ -95,12 +102,15 @@ def aplicar_estilo_y_fondo(rostro, fondo_prompt, estilo_model_path="modelo_estil
     rostro_estilizado = aplicar_estilo(rostro, estilo_model_path)
     
     # 2. Generar el fondo usando Stable Diffusion
-    model_id = "CompVis/stable-diffusion-v1-4"
-    # Nota: para optimizar, deberías cargar el pipeline una sola vez
-    pipe = StableDiffusionPipeline.from_pretrained(model_id, torch_dtype=torch.float16)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    pipe.to(device)
-    
+    if pipe is None:
+        model_id = "CompVis/stable-diffusion-v1-4"
+        # Si no se proporciona un pipeline, se crea uno nuevo
+        pipe = StableDiffusionPipeline.from_pretrained(
+            model_id, torch_dtype=torch.float16
+        )
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        pipe.to(device)
+
     fondo = pipe(fondo_prompt, height=background_size[1], width=background_size[0]).images[0]
     
     # 3. Redimensionar el rostro para que ocupe, por ejemplo, el 30% del ancho del fondo
