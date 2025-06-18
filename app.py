@@ -127,7 +127,8 @@ def get_device():
 # --------------------------------------------------------------------------------------------
 # Función para cargar el modelo de generación (Stable Diffusion)
 # --------------------------------------------------------------------------------------------
-def load_generation_model():
+@st.cache_resource
+def load_generation_model(device: str):
     model_index_path = os.path.join(local_model_dir, "model_index.json")
     if (not os.path.exists(local_model_dir)
         or len(os.listdir(local_model_dir)) == 0
@@ -136,8 +137,6 @@ def load_generation_model():
         if os.path.exists(local_model_dir):
             shutil.rmtree(local_model_dir)
         snapshot_download(repo_id=model_id, local_dir=local_model_dir)
-
-    device = get_device()
 
     if device == "cuda":
         # Usar float16 en GPU
@@ -157,7 +156,7 @@ def load_classification_model():
     return pipeline("image-classification", model="google/vit-base-patch16-224")
 
 with st.spinner("Cargando modelo de generación..."):
-    generation_model = load_generation_model()
+    generation_model = load_generation_model(get_device())
 classification_model = load_classification_model()
 
 st.markdown("""
